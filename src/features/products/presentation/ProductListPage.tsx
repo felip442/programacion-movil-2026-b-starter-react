@@ -2,47 +2,39 @@ import {
   IonButton,
   IonContent,
   IonHeader,
-  IonItem,
-  IonLabel,
+  IonInput,
   IonList,
   IonPage,
   IonTitle,
   IonToolbar,
   useIonViewWillEnter,
 } from '@ionic/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useHistory } from 'react-router-dom';
 
 import { getErrorMessage } from '../data/api-error';
 import { getProducts } from '../data/products-api';
-import type { Product } from '../domain/product';
+import { CATEGORIES, filterProducts, toProductView, type Product } from '../domain/product';
 import EmptyState from './EmptyState';
+import ProductCard from './ProductCard';
 
 /**
  * Pantalla: lista de productos (ruta /productos).
- *
- * El código de abajo es un EJEMPLO MÍNIMO YA DADO de cómo se carga una lista:
- *  - `useState` guarda los productos, el estado de la carga y el mensaje de error;
- *  - `useEffect` con `[]` carga la lista UNA vez, al abrir la pantalla;
- *  - `useIonViewWillEnter` la recarga cuando la persona VUELVE a esta pantalla (Ionic mantiene la
- *    página en memoria, así que sin esto no se vería, por ejemplo, un producto recién creado);
- *  - `IonItem` + `IonLabel` pintan cada producto.
- *
- * TODO(Parte 3): completar la pantalla
- *  - un buscador por texto (`IonInput`) y un filtro por categoría con un `IonButton` por categoría
- *    («Todas» + CATEGORIES) y una variable de estado; filtrar con `filterProducts()`;
- *  - estado VACÍO (la API no tiene productos) y estado SIN RESULTADOS (los filtros no encuentran nada),
- *    ambos con `EmptyState`;
- *  - `ProductCard` por producto, en lugar de IonItem/IonLabel, usando `toProductView()`;
- *  - al tocar un producto, ir a /productos/:id (`useHistory`);
- *  - un botón para ir al formulario (/productos/nuevo).
- * Para ver el estado de error, detenga el servidor (`npm run server`).
+ * Estado local con `useState`: productos, estado de carga, error y filtros (ADR-001).
+ * Estados visibles: cargando, vacío, sin resultados y error con «Reintentar».
  */
 type LoadStatus = 'loading' | 'ready' | 'error';
 
+/** Opción «Todas» (categoría vacía = sin filtro). */
+const ALL_CATEGORIES = '';
+
 const ProductListPage: React.FC = () => {
+  const history = useHistory();
   const [products, setProducts] = useState<Product[]>([]);
   const [status, setStatus] = useState<LoadStatus>('loading');
   const [errorMessage, setErrorMessage] = useState('');
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState(ALL_CATEGORIES);
   const isLoadingRef = useRef(false);
 
   const loadProducts = useCallback(async () => {
@@ -68,6 +60,18 @@ const ProductListPage: React.FC = () => {
     void loadProducts();
   });
 
+  const visibleProducts = useMemo(
+    () => filterProducts(products, { search, category }).map(toProductView),
+    [products, search, category],
+  );
+
+  const clearFilters = () => {
+    setSearch('');
+    setCategory(ALL_CATEGORIES);
+  };
+
+  const categoryOptions = [{ label: 'Todas', value: ALL_CATEGORIES }, ...CATEGORIES.map((item) => ({ label: item, value: item }))];
+
   return (
     <IonPage>
       <IonHeader>
@@ -76,7 +80,31 @@ const ProductListPage: React.FC = () => {
         </IonToolbar>
       </IonHeader>
       <IonContent>
+        <div className="ion-padding">
+          <IonInput
+            label="Buscar por nombre"
+            labelPlacement="floating"
+            fill="outline"
+            clearInput
+            value={search}
+            onIonInput={(event) => setSearch(String(event.detail.value ?? ''))}
+          />
+          <div className="ion-margin-top">
+            {categoryOptions.map((option) => (
+              <IonButton
+                key={option.label}
+                size="small"
+                fill={category === option.value ? 'solid' : 'outline'}
+                onClick={() => setCategory(option.value)}
+              >
+                {option.label}
+              </IonButton>
+            ))}
+          </div>
+        </div>
+
         {status === 'loading' && <p className="ion-padding">Cargando productos…</p>}
+
         {status === 'error' && (
           <EmptyState
             title="No se pudo cargar"
@@ -85,15 +113,37 @@ const ProductListPage: React.FC = () => {
             onAction={() => void loadProducts()}
           />
         )}
-        {status === 'ready' && (
+
+        {status === 'ready' && products.length === 0 && (
+          <EmptyState
+            title="No hay productos"
+            message="Todavía no se ha registrado ningún producto."
+            actionLabel="Crear producto"
+            onAction={() => history.push('/productos/nuevo')}
+          />
+        )}
+
+        {status === 'ready' && products.length > 0 && visibleProducts.length === 0 && (
+          <EmptyState
+            title="Sin resultados"
+            message="Ningún producto coincide con la búsqueda o la categoría."
+            actionLabel="Limpiar filtros"
+            onAction={clearFilters}
+          />
+        )}
+
+        {status === 'ready' && visibleProducts.length > 0 && (
           <IonList>
-            {products.map((product) => (
-              <IonItem key={product.id}>
-                <IonLabel>{product.name}</IonLabel>
-              </IonItem>
+            {visibleProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onSelect={(id) => history.push(`/productos/${id}`)}
+              />
             ))}
           </IonList>
         )}
+
         <IonButton routerLink="/productos/nuevo" className="ion-margin">
           Nuevo producto
         </IonButton>

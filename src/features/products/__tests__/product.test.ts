@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import seedProducts from '../../../../server/data/products.json';
-import { CATEGORIES, formatCOP, LOW_STOCK_THRESHOLD } from '../domain/product';
+import {
+  CATEGORIES,
+  filterProducts,
+  formatCOP,
+  LOW_STOCK_THRESHOLD,
+  toProductView,
+  validateProduct,
+  type Product,
+} from '../domain/product';
 
 /**
  * Pruebas unitarias de EJEMPLO (ya vienen dadas) para que `npm test` corra desde el inicio.
@@ -34,19 +42,41 @@ describe('formatCOP (ejemplo)', () => {
   });
 });
 
-/**
- * TODO(Parte 5): agregue sus pruebas UNITARIAS aquí (o en archivos nuevos dentro de __tests__/).
- * Mínimo dos de estas funciones del dominio: `validateProduct`, `toProductView` o `filterProducts`.
- * Quite el `.todo` cuando escriba el cuerpo de cada una.
- */
+// Pruebas unitarias del dominio (Parte 5).
 describe('validateProduct', () => {
-  it.todo('rechaza un nombre vacío, un precio menor o igual que 0 y una categoría no permitida');
+  it('rechaza un nombre vacío, un precio menor o igual que 0 y una categoría no permitida', () => {
+    const result = validateProduct({ name: '   ', price: 0, category: 'Ropa', stock: 1.5 });
+    expect(result.isValid).toBe(false);
+    expect(Object.keys(result.errors).sort()).toEqual(['category', 'name', 'price', 'stock']);
+  });
+
+  it('acepta un producto válido y rechaza un nombre de más de 60 caracteres', () => {
+    expect(validateProduct({ name: 'Café 500 g', price: 18500, category: 'Bebidas', stock: 0 })).toEqual({
+      isValid: true,
+      errors: {},
+    });
+    const longName = validateProduct({ name: 'a'.repeat(61), price: 1, category: 'Hogar', stock: 1 });
+    expect(longName.errors.name).toBeDefined();
+  });
 });
 
 describe('toProductView', () => {
-  it.todo('formatea el precio en pesos y marca «Agotado» y «Pocas unidades»');
+  const base: Product = { id: 9, name: '  Olla  ', price: 1250000, category: 'Hogar', stock: 10 };
+
+  it('formatea el precio en pesos y marca «Agotado» y «Pocas unidades»', () => {
+    expect(toProductView(base)).toMatchObject({ name: 'Olla', priceLabel: '$ 1.250.000', stockLabel: 'Disponible' });
+    expect(toProductView({ ...base, stock: 0 })).toMatchObject({ stockLabel: 'Agotado', isOutOfStock: true, isLowStock: false });
+    expect(toProductView({ ...base, stock: 4 })).toMatchObject({ stockLabel: 'Pocas unidades', isLowStock: true });
+  });
 });
 
 describe('filterProducts', () => {
-  it.todo('filtra por texto sin distinguir mayúsculas y por categoría exacta');
+  it('filtra por texto sin distinguir mayúsculas y por categoría exacta', () => {
+    const products = seedProducts as Product[];
+    expect(filterProducts(products, { search: 'JUGO', category: '' }).map((item) => item.id)).toEqual([2]);
+    expect(filterProducts(products, { search: '', category: 'Aseo' }).map((item) => item.id)).toEqual([6, 7]);
+    expect(filterProducts(products, { search: '  ', category: '' })).toHaveLength(8);
+    expect(filterProducts(products, { search: 'zzz', category: '' })).toEqual([]);
+  });
+  
 });
