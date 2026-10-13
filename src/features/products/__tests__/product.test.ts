@@ -78,4 +78,5 @@ describe('filterProducts', () => {
     expect(filterProducts(products, { search: '  ', category: '' })).toHaveLength(8);
     expect(filterProducts(products, { search: 'zzz', category: '' })).toEqual([]);
   });
+  
 });
