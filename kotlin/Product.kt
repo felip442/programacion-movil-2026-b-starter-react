@@ -4,21 +4,41 @@
 // `?.`, `?:`, if/when, plantillas de cadena). No exige proyecto Android.
 // Cómo ejecutarlo: pegue el archivo en https://play.kotlinlang.org o compílelo con `kotlinc`.
 
-// TODO(Parte 4): defina la clase Product con id (Int), name (String), price (Double),
-// category (String) y un campo OPCIONAL: stock (Int?) que puede ser null.
-// Use `val` para lo que no cambia y `var` solo para lo que sí cambia.
+// id, nombre y categoría no cambian (val); precio y stock sí pueden cambiar (var).
+// stock es Int? porque puede no conocerse (null).
+class Product(
+    val id: Int,
+    val name: String,
+    var price: Double,
+    val category: String,
+    var stock: Int?
+)
 
+// null → "Sin dato" · 0 → "Agotado" · menos de 5 → "Pocas unidades" · otro caso → "Disponible"
+fun stockLabel(stock: Int?): String {
+    if (stock == null) return "Sin dato"
+    return when {
+        stock == 0 -> "Agotado"
+        stock < 5 -> "Pocas unidades"
+        else -> "Disponible"
+    }
+}
 
-// TODO(Parte 4): stockLabel(stock: Int?): String
-//   null → "Sin dato" · 0 → "Agotado" · menos de 5 → "Pocas unidades" · otro caso → "Disponible"
-//   (use `?:`, `?.` o `if` para tratar el null).
-
-
-// TODO(Parte 4): applyDiscount(price: Double, percent: Int): Double
-//   Devuelve el precio con el descuento aplicado (p. ej. 10000.0 con 15 % → 8500.0).
-
+// Precio con el descuento aplicado: 10000.0 con 15 % → 8500.0
+fun applyDiscount(price: Double, percent: Int): Double {
+    return price - price * percent / 100.0
+}
 
 fun main() {
-    // TODO(Parte 4): cree 3 productos (uno con stock null y uno agotado) e imprima, por cada uno,
-    // su nombre, la etiqueta de stock y su precio con un 10 % de descuento.
+    val products = listOf(
+        Product(1, "Agua mineral 600 ml", 1800.0, "Bebidas", 120),
+        Product(2, "Galletas de avena x6", 2700.0, "Snacks", 0),
+        Product(3, "Jabón de manos 250 ml", 6900.0, "Aseo", null)
+    )
+
+    for (product in products) {
+        val stockText = product.stock?.toString() ?: "?"
+        val finalPrice = applyDiscount(product.price, 10)
+        println("${product.name} | stock: $stockText (${stockLabel(product.stock)}) | precio con 10 %: $finalPrice")
+    }
 }
