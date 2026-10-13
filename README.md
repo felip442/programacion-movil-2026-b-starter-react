@@ -105,3 +105,23 @@ Al terminar, agregue aquí abajo las dos secciones escritas en inglés (3 a 5 fr
 ---
 
 Las plantillas de `docs/` provienen del Mobile Governance Framework (licencia MIT; ver `docs/LICENSE-mobile-governance-framework.txt`).
+
+## Cómo ejecutar esta versión
+
+```bash
+npm install
+cp .env.example .env   # opcional: cambiar VITE_API_URL
+npm run server         # API en http://localhost:3000 (terminal 1)
+npm run dev            # app en http://localhost:5173 (terminal 2)
+npm test               # pruebas unitarias y de la API
+```
+
+Kotlin: pegar `kotlin/Product.kt` en https://play.kotlinlang.org y ejecutar.
+
+## State management decision
+
+Each screen keeps its own state inside the page with `useState` and `useEffect`, as described in ADR-001. We chose this pattern because the app has only one feature and the screens do not share data, so a global store would add code without real benefit. A single `status` value (`loading`, `ready` or `error`) avoids impossible combinations of boolean flags, and the list reloads with `useIonViewWillEnter` when the user comes back. Pure logic such as validation and filtering lives in the domain layer, so it can be tested without React. If the app grew, for example with a cart or a user session, we would move the shared state to a custom hook or a store like Zustand.
+
+## API error handling
+
+The client sends every request through the `request` function, which throws an `ApiError` in two different cases. If `fetch` throws, the API did not answer, so it is a network error and `status` is null; if the response is not `ok`, the client reads the `{ error, details }` body and keeps the HTTP status code. On the server, the 404 handler answers unknown routes and the central error handler returns 400 for malformed JSON and 500 for unexpected exceptions, always with the same `{ error, details }` format. The screens call `getErrorMessage`, so the user sees a clear message such as "server not available" or "product not found", plus a "Reintentar" button or the validation details in the form. The test `responde 404 cuando el producto no existe` checks this behavior.
