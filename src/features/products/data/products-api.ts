@@ -1,8 +1,7 @@
 /**
  * Capa DATA: cliente HTTP de la API de productos (server/app.js).
  *
- * `request` y `getProducts` YA ESTÁN RESUELTOS como ejemplo del patrón. El resto de las
- * funciones se escriben en la Parte 3 del TODO.md, replicando ese patrón.
+ * `request` y `getProducts` vienen dados; el resto replica ese patrón (Parte 3).
  */
 import type { Product, ProductInput } from '../domain/product';
 import { ApiError } from './api-error';
@@ -48,30 +47,30 @@ export async function getProducts(query: ProductQuery = {}): Promise<Product[]> 
   return request<Product[]>(`/api/products${queryString ? `?${queryString}` : ''}`);
 }
 
-/** TODO(Parte 3): GET /api/products/:id — siga el patrón de `getProducts`. */
+/** GET /api/products/:id */
 export async function getProduct(id: number): Promise<Product> {
-  void id;
-  throw new ApiError('TODO(Parte 3): falta implementar getProduct.', null);
+  return request<Product>(`/api/products/${id}`);
 }
 
-/**
- * TODO(Parte 3): POST /api/products — cuerpo JSON con el producto.
- * Pista: request<Product>('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) })
- */
+/** POST /api/products — cuerpo JSON con el producto. */
 export async function createProduct(input: ProductInput): Promise<Product> {
-  void input;
-  throw new ApiError('TODO(Parte 3): falta implementar createProduct.', null);
+  return request<Product>('/api/products', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
 }
 
-/** TODO(Parte 3): PUT /api/products/:id — igual que createProduct, con method 'PUT' y el id en la ruta. */
+/** PUT /api/products/:id — reemplaza los datos del producto. */
 export async function updateProduct(id: number, input: ProductInput): Promise<Product> {
-  void id;
-  void input;
-  throw new ApiError('TODO(Parte 3): falta implementar updateProduct.', null);
+  return request<Product>(`/api/products/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
 }
 
-/** TODO(Parte 3): DELETE /api/products/:id — request<void>(`/api/products/${id}`, { method: 'DELETE' }) */
+/** DELETE /api/products/:id — responde 204 sin cuerpo. */
 export async function deleteProduct(id: number): Promise<void> {
-  void id;
-  throw new ApiError('TODO(Parte 3): falta implementar deleteProduct.', null);
+  return request<void>(`/api/products/${id}`, { method: 'DELETE' });
 }
